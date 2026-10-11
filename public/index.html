@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Перекличка остатков</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="page">
+      <section class="work-area">
+        <header class="topbar">
+          <div>
+            <p class="eyebrow">Утренний пересчет</p>
+            <h1>Перекличка остатков</h1>
+          </div>
+          <button class="icon-button" id="clearQuantities" type="button" title="Очистить все количества" aria-label="Очистить все количества">
+            ↺
+          </button>
+        </header>
+
+        <form id="reportForm" class="report-form">
+          <div class="details-grid">
+            <label>
+              <span>Дата</span>
+              <input id="date" name="date" type="date" required />
+            </label>
+            <label>
+              <span>Магазин</span>
+              <input id="location" name="location" type="text" value="Магазин" />
+            </label>
+            <label>
+              <span>Сотрудник</span>
+              <input id="responsible" name="responsible" type="text" placeholder="Кто считает" />
+            </label>
+          </div>
+
+          <div class="search-panel">
+            <label class="search-box">
+              <span>Поиск по списку</span>
+              <input id="search" type="search" placeholder="Например: сомса 6000" autocomplete="off" />
+            </label>
+            <div class="summary-strip">
+              <span id="itemsCount">0 товаров</span>
+              <span id="visibleCount">0 показано</span>
+              <span id="filledCount">0 заполнено</span>
+            </div>
+          </div>
+
+          <div class="stock-table" aria-label="Список товаров для пересчета">
+            <div class="table-head">
+              <span>Товар</span>
+              <span>Сколько осталось утром</span>
+            </div>
+            <div id="itemsList" class="items-list"></div>
+          </div>
+
+          <div class="actions">
+            <button class="secondary-button" id="copyReport" type="button">Скопировать отчет</button>
+            <button class="primary-button" type="submit">Отправить в Telegram</button>
+          </div>
+        </form>
+      </section>
+
+      <aside class="preview-panel">
+        <p class="eyebrow">Сообщение в Telegram</p>
+        <pre id="preview"></pre>
+        <p id="status" class="status" role="status"></p>
+      </aside>
+    </main>
+
+    <template id="itemTemplate">
+      <article class="product-row">
+        <div class="product-name"></div>
+        <label class="quantity-field">
+          <input class="product-quantity" type="number" min="0" step="1" inputmode="numeric" placeholder="0" aria-label="Количество товара" />
+          <span class="product-unit">шт</span>
+        </label>
+      </article>
+    </template>
+
+    <script src="/app.js" type="module"></script>
+  </body>
+</html>
