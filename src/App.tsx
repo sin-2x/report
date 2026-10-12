@@ -1,4 +1,5 @@
 import {
+  Alert,
   Badge,
   Button,
   Card,
@@ -86,22 +87,51 @@ const defaultValues: FormValues = {
 };
 
 async function fetchProducts(): Promise<Product[]> {
-  const response = await fetch("/api/items");
-  const result = await response.json();
+  try {
+    const response = await fetch("/api/items", {
+      headers: { Accept: "application/json" }
+    });
+    const contentType = response.headers.get("content-type") || "";
 
-  if (!response.ok || !result.ok) {
-    throw new Error(result.error || "Не удалось загрузить список товаров");
+    if (response.ok && contentType.includes("application/json")) {
+      const result = await response.json();
+      if (result.ok) return result.items;
+      throw new Error(result.error || "Не удалось загрузить список товаров");
+    }
+  } catch {
+    // Static frontend deployments do not have /api; fall back to public/data.txt.
   }
 
-  return result.items;
+  const dataResponse = await fetch("/data.txt", { cache: "no-store" });
+
+  if (!dataResponse.ok) {
+    throw new Error("Не найден data.txt. Для frontend-only деплоя файл data.txt должен быть в public/data.txt.");
+  }
+
+  const items = parseProductsText(await dataResponse.text());
+  if (!items.length) {
+    throw new Error("Файл data.txt найден, но список товаров пустой.");
+  }
+
+  return items;
 }
 
 async function sendReport(payload: ReportPayload) {
   const response = await fetch("/api/send-report", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", Accept: "application/json" },
     body: JSON.stringify(payload)
-  });
+  }).catch(() => null);
+
+  if (!response) {
+    throw new Error("На frontend-only деплое отправка в Telegram невозможна без backend/serverless.");
+  }
+
+  const contentType = response.headers.get("content-type") || "";
+  if (!contentType.includes("application/json")) {
+    throw new Error("На frontend-only деплое отправка в Telegram невозможна без backend/serverless.");
+  }
+
   const result = await response.json();
 
   if (!response.ok || !result.ok) {
@@ -109,6 +139,31 @@ async function sendReport(payload: ReportPayload) {
   }
 
   return result;
+}
+
+function parseProductsText(content: string): Product[] {
+  const seen = new Set<string>();
+  let currentGroup = "Без группы";
+  const items: Product[] = [];
+
+  for (const rawLine of content.split(/\r?\n/)) {
+    const line = rawLine.trim();
+    if (!line) continue;
+
+    const bracketGroup = line.match(/^\[(.+)]$/);
+    if (bracketGroup) {
+      currentGroup = bracketGroup[1].trim();
+      continue;
+    }
+
+    const unit = /(^|\s)(кг|kg)(\s|$)/i.test(line) ? "кг" : "шт";
+    const key = `${currentGroup}::${line}`.toLocaleLowerCase("ru-RU");
+    if (seen.has(key)) continue;
+    seen.add(key);
+    items.push({ name: line, unit, group: currentGroup });
+  }
+
+  return items;
 }
 
 export default function App({ themeMode, onThemeChange }: AppProps) {
@@ -421,6 +476,26 @@ export default function App({ themeMode, onThemeChange }: AppProps) {
                   </button>
                 ))}
               </div>
+
+              {productsQuery.isError ? (
+                <Alert
+                  className="api-alert"
+                  type="error"
+                  showIcon
+                  message="Товары не загрузились"
+                  description={productsQuery.error.message}
+                />
+              ) : null}
+
+              {!productsQuery.isLoading && !productsQuery.isError && rows.length === 0 ? (
+                <Alert
+                  className="api-alert"
+                  type="warning"
+                  showIcon
+                  message="Список товаров пустой"
+                  description="Проверьте файл data.txt на сервере."
+                />
+              ) : null}
 
               <Flex className="toolbar" justify="space-between" gap={12}>
                 <Input

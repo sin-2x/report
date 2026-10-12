@@ -31,6 +31,11 @@ const server = createServer(async (req, res) => {
       return;
     }
 
+    if (req.method === "GET" && url.pathname === "/api/health") {
+      await handleHealth(res);
+      return;
+    }
+
     if (req.method === "POST" && url.pathname === "/api/send-report") {
       await handleReport(req, res);
       return;
@@ -52,8 +57,38 @@ server.listen(port, () => {
 });
 
 async function handleItems(res) {
+  if (!existsSync(dataPath)) {
+    sendJson(res, 404, {
+      ok: false,
+      error: "Файл data.txt не найден на сервере. Загрузите data.txt рядом с server.js."
+    });
+    return;
+  }
+
   const content = await readFile(dataPath, "utf8").catch(() => "");
-  sendJson(res, 200, { ok: true, items: parseItems(content) });
+  const items = parseItems(content);
+  sendJson(res, 200, { ok: true, items, count: items.length });
+}
+
+async function handleHealth(res) {
+  const content = await readFile(dataPath, "utf8").catch(() => "");
+  const items = parseItems(content);
+
+  sendJson(res, 200, {
+    ok: true,
+    dataFile: {
+      exists: existsSync(dataPath),
+      items: items.length
+    },
+    telegram: {
+      hasBotToken: Boolean(botToken),
+      hasChatId: Boolean(chatId)
+    },
+    static: {
+      distExists: existsSync(distDir),
+      publicExists: existsSync(publicDir)
+    }
+  });
 }
 
 async function handleReport(req, res) {

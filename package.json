@@ -4,9 +4,11 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "predev": "node scripts/sync-data.mjs",
     "dev": "node scripts/dev.mjs",
     "dev:ui": "vite",
     "dev:api": "node server.js",
+    "prebuild": "node scripts/sync-data.mjs",
     "build": "tsc -b && vite build",
     "start": "node server.js",
     "check": "node --check server.js && tsc -b"
