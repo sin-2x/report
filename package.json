@@ -11,7 +11,7 @@
     "prebuild": "node scripts/sync-data.mjs",
     "build": "tsc -b && vite build",
     "start": "node server.js",
-    "check": "node --check server.js && tsc -b"
+    "check": "node --check server.js && node --check api/send-report.js && tsc -b"
   },
   "dependencies": {
     "@ant-design/icons": "^5.5.2",
